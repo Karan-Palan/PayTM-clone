@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const jwtSecret = require("../config");
 
 const signUpSchema = zod.object({
-  username: zod.string(),
+  username: zod.string().email(),
   password: zod.string(),
   fName: zod.string(),
   lName: zod.string(),
@@ -15,8 +15,8 @@ const signUpSchema = zod.object({
 router.post("/signup", async (req, res) => {
   const body = req.body;
   // Logic for user existing
-  const { sucess } = signUpSchema.safeParse(req.body);
-  if (!sucess) {
+  const { success } = signUpSchema.safeParse(req.body);
+  if (!success) {
     return res.status(411).json({
       msg: "Email already used/ Incorrect input",
     });
@@ -49,6 +49,40 @@ router.post("/signup", async (req, res) => {
   res.json({
     msg: "User created sucessfully",
     token: token,
+  });
+});
+
+const signInSchema = zod.object({
+  username: zod.string().email(),
+  password: zod.string(),
+});
+router.post("/signin", async (req, res) => {
+  const { success } = signInSchema.safeParse(req.body);
+  if (!success) {
+    res.status(411).json({
+      msg: "incorrect input",
+    });
+  }
+  const user = await User.findOne({
+    username: req.body.username,
+    password: req.body.password,
+  });
+  if (user) {
+    const token = jwt.sign(
+      {
+        userId: user._id,
+      },
+      JWT_SECRET
+    );
+
+    res.json({
+      token: token,
+    });
+    return;
+  }
+
+  res.status(411).json({
+    message: "Error while logging in",
   });
 });
 
